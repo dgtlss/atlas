@@ -28,7 +28,7 @@
         "league/html-to-markdown": "^5.1"
     },
     "require-dev": {
-        "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+        "orchestra/testbench": "^8.0|^9.0|^10.0|11.x-dev@dev",
         "phpunit/phpunit": "^10.5|^11.0|^12.0"
     },
     "autoload": {

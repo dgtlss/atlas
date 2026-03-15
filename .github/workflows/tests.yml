@@ -13,14 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.4"
           coverage: none
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: composer-validate-${{ runner.os }}-${{ hashFiles('composer.json', 'composer.lock') }}
@@ -62,26 +62,31 @@ jobs:
             experimental: false
           - name: Laravel 13 Provisional
             php: "8.4"
-            laravel: "^13.0"
-            testbench: "^11.0"
+            laravel: "13.x-dev@dev"
+            testbench: "11.x-dev@dev"
             flags: "--prefer-stable"
             experimental: true
 
     name: ${{ matrix.name }} / PHP ${{ matrix.php }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.laravel }}-${{ matrix.testbench }}-${{ matrix.flags }}-${{ hashFiles('composer.json') }}
           restore-keys: composer-${{ runner.os }}-${{ matrix.php }}-
+
+      - if: matrix.experimental
+        run: |
+          composer config minimum-stability dev
+          composer config prefer-stable true
 
       - run: composer update --no-interaction --prefer-dist --with-all-dependencies ${{ matrix.flags }} laravel/framework:${{ matrix.laravel }} orchestra/testbench:${{ matrix.testbench }}
 
@@ -91,14 +96,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: shivammathur/setup-php@v2
         with:
           php-version: "8.3"
           coverage: none
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: ~/.composer/cache
           key: consumer-install-${{ runner.os }}-${{ hashFiles('composer.json') }}

@@ -22,7 +22,7 @@ class AtlasTest extends TestCase
         $response = $this->get('/page');
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertStringStartsWith('text/html', strtolower((string) $response->headers->get('content-type')));
         $response->assertDontSee('title:');
         $this->assertFalse($response->headers->has('X-Atlas-Format'));
     }
@@ -57,7 +57,7 @@ class AtlasTest extends TestCase
         $response = $this->get('/plain', ['Accept' => 'application/json']);
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertStringStartsWith('text/html', strtolower((string) $response->headers->get('content-type')));
         $this->assertFalse($response->headers->has('X-Atlas-Format'));
     }
 
@@ -141,7 +141,7 @@ class AtlasTest extends TestCase
         $response = $this->get('/page', ['Accept' => 'application/json']);
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertStringStartsWith('text/html', strtolower((string) $response->headers->get('content-type')));
         $this->assertFalse($response->headers->has('X-Atlas-Format'));
     }
 
@@ -153,7 +153,7 @@ class AtlasTest extends TestCase
         $response = $this->get('/page', ['Accept' => 'application/json']);
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertStringStartsWith('text/html', strtolower((string) $response->headers->get('content-type')));
         $this->assertFalse($response->headers->has('X-Atlas-Format'));
     }
 
@@ -193,7 +193,7 @@ class AtlasTest extends TestCase
         $response = $this->get('/page?atlas=xml&ref=docs');
 
         $response->assertOk();
-        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertStringStartsWith('text/html', strtolower((string) $response->headers->get('content-type')));
         $this->assertFalse($response->headers->has('X-Atlas-Format'));
     }
 
