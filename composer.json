@@ -3,12 +3,22 @@
     "description": "Expose selected Laravel routes as agent-readable Markdown and JSON without changing their HTML behavior.",
     "type": "library",
     "license": "MIT",
+    "version": "1.0.0",
+    "authors": [
+        {
+            "name": "Nathan Langer",
+            "email": "nathanlanger@googlemail.com"
+        }
+    ],
     "keywords": [
         "laravel",
         "ai",
+        "agent",
+        "ai-seo",
         "markdown",
         "json",
-        "routes"
+        "routes",
+        "atlas"
     ],
     "require": {
         "php": "^8.1",
