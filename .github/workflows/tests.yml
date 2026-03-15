@@ -1,0 +1,118 @@
+name: tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - "codex/**"
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.4"
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-validate-${{ runner.os }}-${{ hashFiles('composer.json', 'composer.lock') }}
+          restore-keys: composer-validate-${{ runner.os }}-
+
+      - run: composer validate --strict
+
+  test:
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Laravel 10
+            php: "8.1"
+            laravel: "^10.0"
+            testbench: "^8.0"
+            flags: "--prefer-stable"
+            experimental: false
+          - name: Laravel 10 Lowest
+            php: "8.1"
+            laravel: "^10.0"
+            testbench: "^8.0"
+            flags: "--prefer-lowest --prefer-stable"
+            experimental: false
+          - name: Laravel 11
+            php: "8.2"
+            laravel: "^11.0"
+            testbench: "^9.0"
+            flags: "--prefer-stable"
+            experimental: false
+          - name: Laravel 12
+            php: "8.3"
+            laravel: "^12.0"
+            testbench: "^10.0"
+            flags: "--prefer-stable"
+            experimental: false
+          - name: Laravel 13 Provisional
+            php: "8.4"
+            laravel: "^13.0"
+            testbench: "^11.0"
+            flags: "--prefer-stable"
+            experimental: true
+
+    name: ${{ matrix.name }} / PHP ${{ matrix.php }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ matrix.php }}-${{ matrix.laravel }}-${{ matrix.testbench }}-${{ matrix.flags }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-${{ runner.os }}-${{ matrix.php }}-
+
+      - run: composer update --no-interaction --prefer-dist --with-all-dependencies ${{ matrix.flags }} laravel/framework:${{ matrix.laravel }} orchestra/testbench:${{ matrix.testbench }}
+
+      - run: vendor/bin/phpunit
+
+  consumer-install:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: consumer-install-${{ runner.os }}-${{ hashFiles('composer.json') }}
+          restore-keys: consumer-install-${{ runner.os }}-
+
+      - name: Create Laravel consumer app
+        run: composer create-project laravel/laravel:^12.0 consumer-app --no-interaction --prefer-dist
+
+      - name: Require local Atlas package
+        working-directory: consumer-app
+        run: |
+          composer config repositories.atlas '{"type":"path","url":"../","options":{"symlink":false}}'
+          composer require "dgtlss/atlas:*@dev" --no-interaction --prefer-dist
+
+      - name: Publish Atlas config
+        working-directory: consumer-app
+        run: php artisan vendor:publish --tag=atlas-config --force

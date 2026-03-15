@@ -73,11 +73,35 @@ class AtlasTest extends TestCase
 
     public function test_query_parameter_override_works_when_enabled(): void
     {
-        $response = $this->get('/query-format?format=json');
+        $response = $this->get('/query-format?format=json&ref=docs', ['Accept' => 'text/markdown']);
 
         $response->assertOk();
         $response->assertHeader('X-Atlas-Format', 'json');
-        $response->assertJsonPath('url', 'http://localhost/query-format');
+        $response->assertHeader('X-Atlas-Source-URL', 'http://localhost/query-format?ref=docs');
+        $response->assertHeader('Link', '<http://localhost/query-format?ref=docs>; rel="canonical"');
+        $response->assertJsonPath('url', 'http://localhost/query-format?ref=docs');
+    }
+
+    public function test_query_parameter_can_be_disabled_per_route(): void
+    {
+        $response = $this->get('/query-disabled?atlas=json', ['Accept' => 'text/markdown']);
+
+        $response->assertOk();
+        $response->assertHeader('X-Atlas-Format', 'markdown');
+        $response->assertSee('# Atlas Docs', false);
+    }
+
+    public function test_route_level_format_restrictions_are_respected(): void
+    {
+        $json = $this->get('/markdown-only', ['Accept' => 'application/json']);
+        $markdown = $this->get('/markdown-only', ['Accept' => 'text/markdown']);
+
+        $json->assertOk();
+        $json->assertSee('Atlas Docs', false);
+        $this->assertFalse($json->headers->has('X-Atlas-Format'));
+
+        $markdown->assertOk();
+        $markdown->assertHeader('X-Atlas-Format', 'markdown');
     }
 
     public function test_presenter_output_overrides_generic_transformation(): void
@@ -110,6 +134,49 @@ class AtlasTest extends TestCase
         $this->assertSame(1, CountingJsonTransformer::$count);
     }
 
+    public function test_global_disable_mode_bypasses_transformation(): void
+    {
+        $this->app['config']->set('atlas.enabled', false);
+
+        $response = $this->get('/page', ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertFalse($response->headers->has('X-Atlas-Format'));
+    }
+
+    public function test_disallowed_environment_bypasses_transformation(): void
+    {
+        $this->app['config']->set('atlas.allowed_environments', ['production']);
+        $this->app->detectEnvironment(fn (): string => 'local');
+
+        $response = $this->get('/page', ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertHeader('content-type', 'text/html; charset=UTF-8');
+        $this->assertFalse($response->headers->has('X-Atlas-Format'));
+    }
+
+    public function test_headers_and_cookies_are_preserved_when_transforming(): void
+    {
+        $response = $this->get('/headers-cookies', ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertHeader('X-Atlas-Format', 'json');
+        $response->assertHeader('X-Atlas-Test', 'preserved');
+        $this->assertSame('atlas_session', $response->headers->getCookies()[0]->getName());
+        $this->assertSame('abc123', $response->headers->getCookies()[0]->getValue());
+    }
+
+    public function test_non_html_successful_responses_are_not_transformed_without_presenter(): void
+    {
+        $response = $this->get('/non-html', ['Accept' => 'application/json']);
+
+        $response->assertOk();
+        $response->assertExactJson(['hello' => 'world']);
+        $this->assertFalse($response->headers->has('X-Atlas-Format'));
+    }
+
     public function test_redirects_and_streams_fall_back_to_original_responses(): void
     {
         $redirect = $this->get('/redirecting', ['Accept' => 'text/markdown']);
@@ -123,7 +190,7 @@ class AtlasTest extends TestCase
 
     public function test_invalid_format_request_falls_back_to_html(): void
     {
-        $response = $this->get('/page?atlas=xml');
+        $response = $this->get('/page?atlas=xml&ref=docs');
 
         $response->assertOk();
         $response->assertHeader('content-type', 'text/html; charset=UTF-8');

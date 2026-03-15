@@ -67,6 +67,14 @@ class AtlasManager
             'json_transformer' => $this->config->get('atlas.transformers.json'),
         ], $routeOptions);
 
+        if (array_key_exists('formats', $routeOptions)) {
+            $options['formats'] = $routeOptions['formats'];
+        }
+
+        if (isset($routeOptions['cache']) && is_array($routeOptions['cache']) && array_key_exists('vary', $routeOptions['cache'])) {
+            $options['cache']['vary'] = $routeOptions['cache']['vary'];
+        }
+
         $options['formats'] = array_values(array_intersect(
             array_map(static fn (mixed $format): string => strtolower((string) $format), (array) $options['formats']),
             Format::all()

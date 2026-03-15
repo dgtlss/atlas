@@ -6,6 +6,7 @@ namespace Dgtlss\Atlas\Tests;
 
 use Dgtlss\Atlas\AtlasServiceProvider;
 use Dgtlss\Atlas\Tests\Fixtures\EnsureAuthorized;
+use Illuminate\Cookie\CookieJar;
 use Illuminate\Routing\Router;
 use Orchestra\Testbench\TestCase as Orchestra;
 
@@ -18,7 +19,7 @@ abstract class TestCase extends Orchestra
 
     protected function defineEnvironment($app): void
     {
-        $app['config']->set('app.key', 'base64:ZmFrZS1hcHAta2V5LWZvci10ZXN0aW5nLWF0bGFz');
+        $app['config']->set('app.key', 'base64:MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY=');
         $app['config']->set('atlas.enabled', true);
         $app['config']->set('atlas.metadata.defaults', ['surface' => 'atlas']);
         $app['config']->set('auth.defaults.guard', 'web');
@@ -39,6 +40,14 @@ abstract class TestCase extends Orchestra
             ->name('query-format')
             ->atlas(['query_parameter' => 'format']);
 
+        $router->get('/markdown-only', fn () => response($this->sampleHtml()))
+            ->name('markdown-only')
+            ->atlas(['formats' => ['markdown']]);
+
+        $router->get('/query-disabled', fn () => response($this->sampleHtml()))
+            ->name('query-disabled')
+            ->atlas(['query_parameter' => false]);
+
         $router->get('/presented', fn () => response($this->sampleHtml()))
             ->name('presented')
             ->atlas(['presenter' => Fixtures\CustomPresenter::class]);
@@ -53,6 +62,20 @@ abstract class TestCase extends Orchestra
 
         $router->get('/created', fn () => response($this->sampleHtml(), 201))
             ->name('created')
+            ->atlas();
+
+        $router->get('/headers-cookies', function () {
+            $cookie = app(CookieJar::class)->make('atlas_session', 'abc123', 0);
+
+            return response($this->sampleHtml())
+                ->header('X-Atlas-Test', 'preserved')
+                ->cookie($cookie);
+        })
+            ->name('headers-cookies')
+            ->atlas();
+
+        $router->get('/non-html', fn () => response()->json(['hello' => 'world']))
+            ->name('non-html')
             ->atlas();
 
         $router->get('/protected', fn () => response($this->sampleHtml()))
